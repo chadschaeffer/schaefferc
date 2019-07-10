@@ -4,7 +4,7 @@ author: "chad schaeffer"
 date: "July 10, 2019"
 output: 
   html_document:
-    theme: cerulean
+    keep md: true
 ---
 
 include link to package's github page.
