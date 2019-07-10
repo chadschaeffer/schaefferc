@@ -1,6 +1,8 @@
 ---
 title: "Analysis"
-output: html_document
+output: 
+  html_document:
+    theme: cerulean
 ---
 
 This will be the analysis of the data I use as an example. 

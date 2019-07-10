@@ -1,6 +1,8 @@
 ---
 title: "Get_Predictions"
-output: html_document
+output: 
+  html_document:
+    theme: cerulean
 ---
 
 this will show the get_common_predictions function

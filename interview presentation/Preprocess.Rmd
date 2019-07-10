@@ -1,6 +1,8 @@
 ---
 title: "Preprocess"
-output: html_document
+output: 
+  html_document:
+    theme: cerulean
 ---
 
 This will show the preprocess data function
