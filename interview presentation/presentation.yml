@@ -1,0 +1,18 @@
+name: "Chad's interview presentation"
+navbar:
+  title: "HSPSModel R Overview"
+  left:
+    - text: "Presentation Outline"
+      href: index2.html
+    - text: "Functions and Code"
+      menu:
+         - text: "Preprocessing data"
+           href: Preprocess.html
+         - text: "Making Predictions"
+           href: Get_Predictions.html
+    - text: "Iris demonstration"
+      menu:
+         - text: "Example Workflow"
+           href: Workflow.hmtl
+         - text: "Analysis"
+           href: Analysis.html

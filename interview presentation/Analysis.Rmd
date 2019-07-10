@@ -1,0 +1,8 @@
+---
+title: "Analysis"
+output: html_document
+---
+
+This will be the analysis of the data I use as an example. 
+
+After what we discover with the package workflow, like graphs and conclusions.
