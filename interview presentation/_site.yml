@@ -3,7 +3,7 @@ navbar:
   title: "HSPSModel R Overview"
   left:
     - text: "Presentation Outline"
-      href: ./interview presentation/index.html
+      href: ./interview presentation/index.md
     - text: "Functions and Code"
       menu:
         - text: "Preprocessing data"
