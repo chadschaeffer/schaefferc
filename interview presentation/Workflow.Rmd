@@ -1,8 +1,6 @@
 ---
 title: "Workflow"
-output: 
-  html_document:
-    theme: cerulean
+output: html_document
 ---
 
 this will be the workflow

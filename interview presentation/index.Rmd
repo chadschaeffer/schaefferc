@@ -2,9 +2,7 @@
 title: "Presentation Outline"
 author: "chad schaeffer"
 date: "July 10, 2019"
-output: 
-  html_document:
-    keep_md: true
+output: html_document
 ---
 
 include link to package's github page.

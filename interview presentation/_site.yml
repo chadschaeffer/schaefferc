@@ -3,18 +3,18 @@ navbar:
   title: "HSPSModel R Overview"
   left:
     - text: "Presentation Outline"
-      href: ./interview presentation/index.md
+      href: index.html
     - text: "Functions and Code"
       menu:
         - text: "Preprocessing data"
-          href: ./interview presentation/Preprocess.html
+          href: Preprocess.html
         - text: "Making Predictions"
-          href: ./interview presentation/Get_Predictions.html
+          href: Get_Predictions.html
     - text: "Iris demonstration"
       menu:
         - text: "Example Workflow"
-          href: ./interview presentation/Workflow.hmtl
+          href: Workflow.hmtl
         - text: "Analysis"
-          href: ./interview presentation/Analysis.html
+          href: Analysis.html
 
 output_dir: '.'
