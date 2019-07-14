@@ -1,0 +1,474 @@
+---
+title: "HSPSModelR Overview"
+author: "Chad Schaeffer"
+date: "July 15, 2019"
+output: 
+  html_document:
+  keep_md: true
+---
+
+</br>
+
+```{r message=FALSE, warning=FALSE}
+library(devtools)    
+library(tidyverse)   
+library(caret)       
+library(HSPSModelR)  
+```
+
+
+The dhfr dataset is included in the caret package. It contains the molecular composition of 325 different compounds, as well as a classification on whether or not they inhibit dyhydrofolate reductase (dhfr). There are 228 molecular quantities described for each compound.
+```{r}
+data(dhfr)
+as.tibble(dhfr)
+```
+
+</br>
+
+</br>
+
+</br>
+
+## **preprocess_data**
+
+Prepares data for binary classification tasks, specifically ones in this package, by imputing missing values, eliminating low-information features, and more.
+```{r eval = FALSE}
+preprocess_data(x, target = "y")
+```
+
+</br>
+
+The targets must be coded as factors.
+```{r eval = FALSE}
+# we check if your targets are coded as factors.
+  if (target_column %>% is.factor() == TRUE) {
+    message("Target is already a factor")
+
+    
+# if they are not, the default action is simply to reassign them as factors.
+  } else if (factor_y == TRUE) {
+    VALUE <- NULL
+    wrapr::let(
+      c(VALUE = target),
+      x <- x %>% mutate(VALUE = as.factor(VALUE))
+    )
+    message("Converted ", target, " into a factor")
+```
+
+We've wrapped these useful pre-processing functions into preprocess_data.
+```{r eval = FALSE}
+caret::findCorrelation(x, cutoff = 0.9)
+
+caret::nearZeroVar(x)
+
+naniar::impute_mean_if(x, .predicate = any_na)
+
+DMwR::knnImputation(x)
+```
+
+We don't want IDs or row numbers to affect the preprocessing.
+```{r eval = FALSE}
+# at the beginning of the function we ungroup the data, then temporarily remove IDs.
+  if (sum(class(x) == "grouped_df") > 0) {
+    x <- x %>% ungroup()
+    message("Data has been ungrouped")
+  }
+
+  if (sum(names(x) %>% str_detect("ID")) > 0) {
+    ids <- x %>% select(ID)
+    x   <- x %>% select(-ID)
+    has_id <- TRUE
+    message("ID column has been removed")
+
+    
+# At the end of the function we return IDs if they were part of the original dataset.
+  if (has_id == TRUE) {
+    x <- x %>%
+      bind_cols(ids) %>%
+        select(ID, everything())
+    }
+
+    return(x)
+```
+
+</br>
+
+Here's the finished product with all available parameters.
+```{r eval = FALSE}
+preprocess_data(x, 
+                target = "y", 
+                factor_y = TRUE, 
+                impute = "zero",
+                k = 10,
+                reduce_cols = FALSE,
+                corr_cutoff = 0.9,
+                freq_cut = 95/5, 
+                unique_cut = 10
+                )
+```
+
+</br>
+
+dhfr is already a rather clean datset, but we run it through the preprocess_data function to see if we can reduce the vector size.
+```{r message=FALSE, warning=FALSE}
+length(dhfr)
+```
+
+117 columns are removed from dhfr using the default parameters in our preprocess_data function.
+```{r message=FALSE, warning=FALSE}
+dhfr_reduced <- preprocess_data(dhfr, target = "Y", reduce_cols = TRUE)
+length(dhfr_reduced)
+```
+
+</br>
+
+The data set is ready to go as soon as we split it into a training and testing set.
+```{r}
+set.seed(1)
+index   <- caret::createDataPartition(dhfr_reduced$Y, p = .8, list = F)
+train_x <- dhfr_reduced[ index, 1:111]
+test_x  <- dhfr_reduced[-index, 1:111]
+train_y <- dhfr_reduced[ index, "Y"]
+test_y  <- dhfr_reduced[-index, "Y"]
+```
+
+</br>
+
+</br>
+
+</br>
+
+## **run_models**
+
+Obtain a list of trained models from your training data.
+```{r eval = FALSE}
+run_models(train_x, train_y)
+```
+
+</br>
+
+The caretList function is the foundation of our run_models function. We've cut out the work of searching for and installing methods, and added a couple parameter options.
+```{r eval = FALSE}
+caretEnsemble::caretList()
+```
+
+</br>
+
+There are currently 238 training methods available through caret. Many require additional installations outside of caret before they can be used, so we added the **install_train_packages** to quickly prepare your environment to train each model without interruption.
+```{r eval = FALSE}
+install_train_packages()
+```
+
+We looked into each of the 238 methods and hand-picked 68 to include in run_models.
+```{r eval = FALSE}
+methods <- c("pda", "slda", "wsrf", "knn", "glm", "ada", "svmLinear", "bayesglm",
+             "rpart2", "glmStepAIC", "mda", "nbSearch", "ranger", "spls", "binda",
+             "mlpWeightDecay", "stepQDA", "plsRglm", "sparseLDA", "evtree", "lda",
+             "rf", "naive_bayes", "treebag", "glmboost", "cforest", "hda", 
+             "mlpWeightDecayML", "ordinalNet", "rotationForest", "svmBoundrangeString",
+             "bstSm", "nodeHarvest", "rfRules", "svmLinear2", "polr", 
+             "svmLinearWeights", "fda", "msaenet", "glmnet", "bagFDA", "C5.0", 
+             "ctree2", "hdda", "monmlp", "plr", "rpartScore", "svmLinear3", 
+             "dwdLinear", "partDSA", "rocc", "svmPoly", "sdwd", "svmRadialCost",
+             "gamSpline", "null", "lda", "lvq", "bagEarth", "rpart1SE", 
+             "gcvEarth", "lda2", "nb", "pls", "sda", "xgbDART", "earth", 
+             "protoclass", "rotationForestCp", "svmRadialWeights")
+```
+
+</br>
+
+Objects returned by caret::train tend to be very large. They contain all of the data used to create the model, including each fold or resample, and the fully expanded models that was created in each instance. Since this information takes up valuable space and is not commonly needed, we've included the trim function as a parameter for a less dense list of models.
+```{r eval = FALSE}
+  if (trim_models == TRUE) {
+    result <- model_list %>% purrr::map(caret:::trim.train)
+    return(result)
+```
+
+The light parameter trains on only five methods rather than 68.
+```{r eval = FALSE}
+  if (light == TRUE) {
+    methods <- c("glmboost", "pls", "rf", "earth", "rotationForestCp")
+  }
+```
+
+Here's the finished product with all available parameters. We'll use it to train the dhfr data.
+```{r message = FALSE, warning = FALSE, echo = TRUE, results = 'hide'}
+models_list <- run_models(train_x     = train_x, 
+                          train_y     = train_y, 
+                          seed        = 1, 
+                          num_folds   = 2, 
+                          trim_models = TRUE, 
+                          light       = TRUE)
+```
+
+</br>
+
+The run_models function outputs a list of models. If one already has a list of trained models and doesn't wish to train 68 new ones, the **make_list** function will compile all models in a specified directory into an R list.
+```{r eval = FALSE}
+make_list("filepath")
+```
+
+
+</br>
+
+</br>
+
+</br>
+
+## **get_common_predictions**
+
+Obtain a dataset containing the probabilities of a predicted outcome where each row is an observation whose outcome has been agreed upon by each model to a pre-specified extent.
+```{r eval = FALSE}
+get_common_predictions(models,
+                       test_x,
+                       threshold,
+                       id_col = NULL)
+```
+
+</br>
+
+This function finds the probability that each row's target is a particular classification, and displays the mean probability along with original row numbers or IDs if included.
+```{r eval = FALSE}
+caretEnsemble:::predict.caretList()
+```
+
+We built upon predict.caretList by creating the agreeance column to summarise the probabilities, and binding original row numbers to the probabilities.
+```{r eval = FALSE}
+  result <- predictions_array %>%
+    mutate(agreeance = (rowSums(predictions_array) / ncol(predictions_array))) %>%
+    bind_cols(ID) %>%
+    select(ID, agreeance, everything()) %>%
+    filter(agreeance >= threshold) %>%
+    arrange(desc(agreeance))
+
+  return(result)
+```
+
+</br>
+
+By default, this function reports on probabilities for the first appearing factor in the dataset. For our dhfr example, we will get a list of compounds where dhfr is predicted to be inhibited.
+```{r}
+get_common_predictions(models_list, test_x, threshold = 0.70)
+```
+
+If we were intersted in compounds where dhfr was active, some quick manipulation could reveal those probabilities.
+```{r}
+get_common_predictions(models_list, test_x, threshold = 0) %>%
+  mutate(other = (1 - agreeance)) %>%
+  select(-agreeance) %>%
+  filter(other >= 0.70) %>%
+  arrange(desc(other))
+```
+
+</br>
+
+</br>
+
+</br>
+
+## **get_performance**
+
+Takes a list of trained machine learning models and returns diagnostics as a data frame to compare the effectiveness of algorithms. 
+```{r eval = FALSE}
+get_performance(models, 
+                test_x, 
+                test_y)
+```
+
+</br>
+
+We used caret's confusionMatrix function at the base of get_performance because they've already coded the formulas for the diagnostics.
+```{r}
+p <- predict(models_list, test_x)
+confusionMatrix(p[[1]], test_y)
+```
+
+We pulled out those diagnostics in chunks and arranged them as labeled values in a table.
+```{r}
+  cm <- confusionMatrix(p[[1]], test_y)
+
+  t3 <- cm[[3]] %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "measure") %>%
+    as_tibble() %>%
+    rename(score = ".")
+
+  t4 <- cm[[4]] %>%
+    as.data.frame() %>%
+    rownames_to_column(var = "measure") %>%
+    as_tibble() %>%
+    rename(score = ".")
+
+  table <- t3 %>%
+    bind_rows(t4) %>%
+    mutate(method = models_list[[1]][[1]])
+  
+  table
+```
+
+Each model iterates through that process and combines the diagnostics in a dataframe where each row represents one model. Scores are arranged from highest to lowest.
+```{r eval = FALSE}
+result <- map_dfr(models, extract_measures, test_x, test_y) %>%
+    arrange(measure, desc(score)) %>%
+    select(method, measure, score)
+```
+
+</br>
+
+The following tibble shows which model was had the highest accuracy in predicting the activity of dhfr in compounds.
+```{r}
+model_performance <- get_performance(models_list, test_x, test_y)
+model_performance
+```
+
+This table can be easily filtered to the metric of interest.
+```{r}
+model_performance %>%
+  filter(measure == "Precision")
+```
+
+Or it can be reformatted to compare diagnostics accross models.
+```{r}
+model_performance %>%
+  spread(method, score)
+```
+
+</br>
+
+</br>
+
+</br>
+
+## **var_imp_overall**
+
+Ranks variables based on importance and provides a scaled coefficient representing how much more each variable contributes to the model than the next.
+```{r eval = FALSE}
+var_imp_overall(models)
+```
+
+</br>
+
+var_imp_* is built from caret's varImp function which generates a coefficient for each variable in a model representing how much of an impact that particular variable has on the model's predictions. 
+```{r eval = FALSE}
+caret::varImp
+```
+
+The imp_vars object gives a snapshot of what varImp does.
+```{r message=FALSE, warning=FALSE}
+varImp_possibly <- possibly(varImp, otherwise = "Non-optimised model")
+imp_vars <- models_list %>%
+  purrr::map(varImp_possibly) %>%
+  rlist::list.clean(fun = is.character)
+  
+imp_vars
+```
+
+You can call this function if you were interested in a table version of the imp_vars object.
+```{r message = FALSE}
+var_imp_raw(models_list)
+```
+
+</br>
+
+To combine information from all models, we get the inverse ranks, then aggregate by the sum of the inversed ranks for each feature between each model. This allows us to compare variable importance by distance.
+```{r eval = FALSE}
+    mutate(rank_inverse = (max(rank) + 1) - rank,
+           rank_multiplied = rank_inverse * n) %>%
+    group_by(features) %>%
+    summarise(rank = sum(rank_multiplied)) %>%
+    arrange(desc(rank)) %>%
+    mutate(rank_place  = row_number(), 
+           rank_scaled = (rank - min(rank))/(max(rank) - min(rank))) 
+```
+
+Here is the final scaled ratings of variable importance found by our list of models for dhfr.
+```{r message=FALSE}
+var_imp_overall(models_list)
+```
+
+</br>
+
+</br>
+
+</br>
+
+## **gg_var_imp**
+
+Quickly visualize variable importance as found by var_imp_overall.
+```{r fig.width=7, message=FALSE, warning=FALSE}
+var_imp_overall(models_list) %>%
+  gg_var_imp(top_num = 20)
+```
+
+</br>
+
+</br>
+
+</br>
+
+## **Analysis**
+
+Let's do some further exploration with all 68 models.
+```{r message = FALSE, warning = FALSE, echo = TRUE, results = 'hide'}
+install_train_packages()
+
+models_list_full <- run_models(train_x     = train_x, 
+                               train_y     = train_y, 
+                               seed        = 1, 
+                               num_folds   = 2, 
+                               trim_models = TRUE, 
+                               light       = FALSE)
+```
+
+</br>
+
+Let's check the performance of our models. 
+
+DHFR is an enzyme that increases the production of tetrahydrofolic acid, and tetrahydrofolic acid inhibits the release of histamine excreted in waste. If we were looking to reduce someone's allergic symptoms, we would want information about what inhibits dhfr.
+
+Thus, we'd be most interested in avoiding false negatives, or situations where we predicted dhfr would be inactive when it was in fact active (which would make allergic symptoms worse). Here, we are selecting only the models with greater than 80% negative predictive value.
+```{r message=FALSE, warning=FALSE}
+get_performance(models_list_full, test_x, test_y) %>%
+                filter(measure == "Neg Pred Value",
+                       score > .80) %>%
+                dplyr::select(method) %>%
+                as.list() %>%
+                as.expression()
+
+npv_models <- models_list_full[c("sdwd", "glmboost", "svmRadialCost", 
+                                 "nodeHarvest", "glmnet", "svmRadialWeights", 
+                                 "spls", "ordinalNet", "sda", "knn", "rotationForestCp", 
+                                 "ada", "svmLinear2", "svmLinearWeights", "bagFDA", 
+                                 "bayesglm", "naive_bayes", "fda", "hdda", 
+                                 "plr", "nb", "wsrf", "ranger", "hda", 
+                                 "pls", "slda", "rotationForest", "sparseLDA", 
+                                 "cforest", "C5.0", "xgbDART", "stepQDA", 
+                                 "msaenet", "rf", "treebag", "svmLinear", 
+                                 "mlpWeightDecay", "glmStepAIC", "mlpWeightDecayML", 
+                                 "svmPoly")]
+```
+
+</br>
+
+We'll use our models with strong negative predictive value to see which compounds are most likely to be True Negatives, and compare it to the probabilities we found using only five models.
+```{r message=FALSE, warning=FALSE}
+get_common_predictions(npv_models, test_x, .90) %>%
+  dplyr::select(ID, agreeance)
+
+get_common_predictions(models_list, test_x, .90) %>%
+  dplyr::select(ID, agreeance)
+```
+
+</br>
+
+Let's see if there are any differences in useful features while using better models.
+```{r fig.width=7, message=FALSE, warning=FALSE}
+var_imp_overall(npv_models) %>%
+  gg_var_imp(top_num = 20)
+```
+
+</br>
+
+</br>
+
+</br>
