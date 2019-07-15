@@ -4,7 +4,7 @@ author: "Chad Schaeffer"
 date: "July 15, 2019"
 output: 
   html_document:
-  keep_md: true
+    keep_md: true
 ---
 
 </br>
@@ -177,7 +177,7 @@ methods <- c("pda", "slda", "wsrf", "knn", "glm", "ada", "svmLinear", "bayesglm"
 
 </br>
 
-Objects returned by caret::train tend to be very large. They contain all of the data used to create the model, including each fold or resample, and the fully expanded models that was created in each instance. Since this information takes up valuable space and is not commonly needed, we've included the trim function as a parameter for a less dense list of models.
+Objects returned by caret::train tend to be very large; we've included the trim function as a parameter for a less dense list of models.
 ```{r eval = FALSE}
   if (trim_models == TRUE) {
     result <- model_list %>% purrr::map(caret:::trim.train)
@@ -420,8 +420,6 @@ models_list_full <- run_models(train_x     = train_x,
                                light       = FALSE)
 ```
 
-</br>
-
 Let's check the performance of our models. 
 
 DHFR is an enzyme that increases the production of tetrahydrofolic acid, and tetrahydrofolic acid inhibits the release of histamine excreted in waste. If we were looking to reduce someone's allergic symptoms, we would want information about what inhibits dhfr.
@@ -446,9 +444,9 @@ npv_models <- models_list_full[c("sdwd", "glmboost", "svmRadialCost",
                                  "msaenet", "rf", "treebag", "svmLinear", 
                                  "mlpWeightDecay", "glmStepAIC", "mlpWeightDecayML", 
                                  "svmPoly")]
-```
 
-</br>
+length(npv_models)
+```
 
 We'll use our models with strong negative predictive value to see which compounds are most likely to be True Negatives, and compare it to the probabilities we found using only five models.
 ```{r message=FALSE, warning=FALSE}
@@ -458,8 +456,6 @@ get_common_predictions(npv_models, test_x, .90) %>%
 get_common_predictions(models_list, test_x, .90) %>%
   dplyr::select(ID, agreeance)
 ```
-
-</br>
 
 Let's see if there are any differences in useful features while using better models.
 ```{r fig.width=7, message=FALSE, warning=FALSE}
@@ -472,3 +468,5 @@ var_imp_overall(npv_models) %>%
 </br>
 
 </br>
+
+
